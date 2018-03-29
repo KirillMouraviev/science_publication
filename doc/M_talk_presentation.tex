@@ -1,0 +1,97 @@
+\documentclass{beamer}
+\usepackage[cp1251]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{amsmath,mathrsfs,mathtext}
+\usepackage{graphicx, epsfig}
+\usetheme{Warsaw}%{Singapore}%{Warsaw}%{Warsaw}%{Darmstadt}
+\usecolortheme{sidebartab}
+\definecolor{beamer@blendedblue}{RGB}{15,120,80}
+%----------------------------------------------------------------------------------------------------------
+\title[\hbox to 56mm{Оптимизация параметров  \hfill\insertframenumber\,/\,\inserttotalframenumber}]
+{Определение параметров нейросети, \\ подлежащих оптимизации}
+\author[К.Ф.Муравьев]{\large \\Кирилл Федорович Муравьев}
+\institute{\large
+Московский физико-технический институт}
+
+\date{\footnotesize{\emph{Курс:} Численные методы обучения по прецедентам\par (практика, В.\,В. Стрижов)/Группа 594, весна 2018}}
+%----------------------------------------------------------------------------------------------------------
+\begin{document}
+%----------------------------------------------------------------------------------------------------------
+\begin{frame}
+%\thispagestyle{empty}
+\titlepage
+\end{frame}
+%-----------------------------------------------------------------------------------------------------
+\begin{frame}{Цель исследования}
+\begin{block}{Проблемы}
+\begin{itemize}
+\item Обучение глубоких нейросетей требует больших вычислительных ресурсов.
+\item Разные параметры нейросети сходятся с разной скоростью.
+\end{itemize}
+\end{block}
+
+\begin{block}{Было предложено}
+\begin{itemize}
+\item Определять параметры, дальнейшая оптимизация которых не принесет результата, и удалять их из множества оптимизируемых параметров.
+\item Определять параметры, влияние которых на предсказания сети мало, и удалять их из множества весов сети.
+\end{itemize}
+\end{block}
+
+\begin{block}{Цели исследования}
+Получить метод определения параметров, не требующих дальнейшей оптимизации.
+\end{block}
+\end{frame}
+%----------------------------------------------------------------------------------------------------------
+\begin{frame}{Литература}
+\begin{itemize}
+\item Alex Graves: Practical Variational Inference for Neural Networks
+\item Chunyan Li, Changoyou Chen, David Carlson, Lawrence Carin: Preconditioned Stochastic Gradient Langevin Dynamics for Deep Neural Networks. 2015
+\item Max Welling, Yee Whye Teh: Bayesian Learning via Stochastic Gradient Langevin Dynamics
+\end{itemize}
+\end{frame}
+%--------------------------------------------------------------------------------------------------
+\begin{frame}{Постановка задачи}
+\begin{itemize}
+\item Дана выборка $\mathfrak{D} = \{(\textbf{x}_i, y_i)\}_{i=1}^m$ и нейросеть $f_{\textbf{w}_0}$.
+\item $T$ - градиентный оператор: $T(\textbf{w}) = \textbf{w} - \gamma \nabla L(\textbf{w}, \mathfrak{D'})$.
+\item $\boldsymbol{\alpha}$ - вектор оптимизируемых параметров, $\boldsymbol{\beta}$ - вектор параметров, включенных в нейросеть.
+\item $T|_{\boldsymbol{\alpha}}(\textbf{w}) = \textbf{w} - \gamma \boldsymbol{\alpha} \odot \nabla L(\textbf{w}, \mathfrak{D})$ - градиентный оператор для вектора $\alpha$ параметров, включенных в оптимизацию.
+\item Ищем оптимальные вектора $\boldsymbol{\alpha}$ и $\boldsymbol{\beta}$:
+$$\arg\min\limits_{\boldsymbol{\alpha} \in \{0, 1\}^N, ||\boldsymbol{\alpha}||_1=k}\ \min\limits_{\boldsymbol{\beta} \in \{0, 1\}^N, ||\boldsymbol{\beta}||_1 = l} \mathcal{L}(\boldsymbol{\beta} \odot (T|_{\boldsymbol{\alpha}})^{\eta_1}(T^{\eta_0}(\textbf{w}_0)), \mathfrak{D})$$
+\end{itemize}
+\end{frame}
+%----------------------------------------------------------------------------------------------------------
+\begin{frame}{Базовый алгоритм}
+Будем считать подлежащими дальнейшей оптимизации параметры с максимальной суммой абсолютных значений градиента функции потерь за последние $t$ шагов:
+$$\boldsymbol{\alpha} = \arg \max\limits_{\boldsymbol{\alpha} \in \{0, 1\}^N, ||\boldsymbol{\alpha}||_1 = k} \boldsymbol{\alpha} \cdot \sum\limits_{i=0}^{t-1}|\nabla \mathcal{L}(T^{\eta_0 - i}(\textbf{w}_0), \mathfrak{D})|$$
+Оставим в сети параметры с наибольшими абсолютными значениями весов, веса остальных занулим:
+$$\boldsymbol{\beta} = \arg \max\limits_{\boldsymbol{\beta} \in \{0, 1\}^N, ||\boldsymbol{\beta}||_1 = l} \boldsymbol{\beta} \cdot |(T|_{\boldsymbol{\alpha}})^{\eta_1}(T^{\eta_0}(\textbf{w}_0))|$$
+\end{frame}
+%----------------------------------------------------------------------------------------------------------
+\begin{frame}{Вычислительный эксперимент}
+\begin{figure}[h]
+\begin{minipage}[h]{0.99\linewidth}
+\center{\includegraphics[width=1.0\linewidth]{disable.png} }
+\end{minipage}
+\hfill
+\end{figure}
+\end{frame}
+%----------------------------------------------------------------------------------------------------------
+\begin{frame}{Вычислительный эксперимент}
+\begin{figure}[h]
+\begin{minipage}[h]{0.99\linewidth}
+\center{\includegraphics[width=1.0\linewidth]{prune.png} }
+\end{minipage}
+\hfill
+\end{figure}
+\end{frame}
+%----------------------------------------------------------------------------------------------------------
+\begin{frame}{Выводы}
+\begin{itemize}
+\item Представлена формальная постановка задачи для выборочной оптимизации глубоких нейросетей.
+\item Построена экспериментальная зависимость качества предсказания от доли оптимизируемых параметров и от степени прореживания нейросети.
+\item Планируется проведение экспериментов с использованием precondition-матрицы.
+\end{itemize}
+\end{frame}
+%----------------------------------------------------------------------------------------------------------
+\end{document} 
